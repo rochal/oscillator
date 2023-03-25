@@ -68,7 +68,7 @@
   </head>
   <body>
     <header>
-        <h1>GPT Musical Oscillator</h1>
+        <h1>Musical Oscillator</h1>
         <p>Click anywhere to start. Move your mouse to play a wave:</p>
     </header>
     <canvas id="visualizer" width="800" height="500"></canvas>
@@ -169,7 +169,7 @@
             }
         };
 
-
+        // draw oscilator wave
         function draw() {
             requestAnimationFrame(draw);
             canvasContext.clearRect(0, 0, canvas.width, canvas.height);
@@ -185,6 +185,7 @@
                 canvasContext.lineTo(x, y);
             }
 
+            // draw stroke on the canvas
             canvasContext.stroke();
       }
 
