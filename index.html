@@ -109,17 +109,30 @@
             }
         });
 
-        document.addEventListener('mousemove', (event) => {
-            const mouseX = event.clientX;
-            const mouseY = event.clientY;
+        document.addEventListener('mousemove', handleInput);
+        document.addEventListener('touchmove', handleInput);
 
-            const frequency = (mouseX / window.innerWidth) * 1000 + 100;
-            const volume = mouseY / window.innerHeight;
-            if (started) {
-                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-            } 
-        });
+        function handleInput(event) {
+          event.preventDefault();
+
+          let mouseX, mouseY;
+
+          if (event.type === 'touchmove') {
+            mouseX = event.touches[0].clientX;
+            mouseY = event.touches[0].clientY;
+          } else {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+          }
+
+          const frequency = (mouseX / window.innerWidth) * 1000 + 100;
+          const volume = mouseY / window.innerHeight;
+
+          if (started) {
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+          }
+        }
 
         document.addEventListener('mouseleave', () => {
             if (started) {
