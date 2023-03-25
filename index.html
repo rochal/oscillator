@@ -126,11 +126,11 @@
           }
 
           const frequency = (mouseX / window.innerWidth) * 1000 + 100;
-          const volume = mouseY / window.innerHeight;
+          const amplitude = mouseY / window.innerHeight;
 
           if (started) {
             oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(1 + amplitude, audioContext.currentTime);
           }
         }
 
@@ -147,7 +147,7 @@
             started = false;
           }
         });
-        
+
         const oscillatorFunctions = {
             'sine': (oscillator, canvas, i, audioContext) => {
                 return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * Math.sin(2 * Math.PI * oscillator.frequency.value * i / audioContext.sampleRate);
