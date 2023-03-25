@@ -211,10 +211,21 @@
             buttonContainer.appendChild(button);
         });
 
-        // function to set oscillator type
+        let currentFrequency = 800; // set initial frequency value
+        let currentAmplitude = 0; // set initial amplitude value
+
         function setOscillatorType(type) {
-            oscillator.type=type;
-            console.log("Set oscilator type", oscillator.type)
+            // store current frequency and amplitude values
+            currentFrequency = oscillator.frequency.value;
+            currentAmplitude = gainNode.gain.value;
+
+            oscillator.type = type;
+
+            // set back the current frequency and amplitude values
+            oscillator.frequency.setValueAtTime(currentFrequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(currentAmplitude, audioContext.currentTime);
+
+            console.log("Set oscillator type", oscillator.type);
         }
 
         // function to update button styles
