@@ -54,6 +54,8 @@
           animation: matrix 20s linear infinite;
           z-index: -1;
         }
+        footer { text-align: center; padding-top:2em; }
+        footer, footer a, footer a:visited { color:green; }
         @keyframes matrix {
           0% {
             background-position: 0px 0px;
@@ -71,6 +73,7 @@
     </header>
     <canvas id="visualizer" width="800" height="500"></canvas>
     <div id="buttons"></div>
+    <footer>Source: <a href="https://github.com/rochal/oscillator">https://github.com/rochal/oscillator</a></footer>
     <script>
 
         const canvas = document.getElementById('visualizer');
@@ -95,12 +98,12 @@
             oscillator.frequency.value = 800;
 
             gainNode.gain.value = 0;
+
         }
 
         document.addEventListener('click', () => {
             if (!started){
                 Initialise("sine");
-
                 audioContext.resume().then(() => {
                     oscillator.start();
                     draw();
@@ -165,6 +168,7 @@
                 return canvas.height / 2;
             }
         };
+
 
         function draw() {
             requestAnimationFrame(draw);
