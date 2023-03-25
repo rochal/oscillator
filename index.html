@@ -140,6 +140,14 @@
             }
         });
 
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden' && started) {
+            oscillator.stop();
+            audioContext.close();
+            started = false;
+          }
+        });
+        
         const oscillatorFunctions = {
             'sine': (oscillator, canvas, i, audioContext) => {
                 return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * Math.sin(2 * Math.PI * oscillator.frequency.value * i / audioContext.sampleRate);
