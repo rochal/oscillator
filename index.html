@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Musical Oscillator</title>
+    <style>
+        body {
+          background-color: black;
+          font-family: monospace;
+          font-size: 16px;
+          color: green;
+          margin: 0;
+          padding: 2em;
+        }
+        canvas {
+          background-color: black;
+        }
+        button {
+          background-color: green;
+          color: black;
+          border: none;
+          padding: 10px;
+          margin: 5px;
+          border-radius: 5px;
+          font-size: 16px;
+          font-weight: bold;
+        }
+        button.active {
+          background-color: black;
+          color: green;
+        }
+        #visualizer {
+          display: block;
+          margin: auto;
+        }
+        #buttons {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        #buttons img {
+          width: 40px;
+          margin-right: 10px;
+        }
+        header { width:800px; margin:0 auto; }
+        .matrix-background {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url('https://i.imgur.com/DuV7Iyf.gif');
+          background-repeat: repeat;
+          animation: matrix 20s linear infinite;
+          z-index: -1;
+        }
+        @keyframes matrix {
+          0% {
+            background-position: 0px 0px;
+          }
+          100% {
+            background-position: 0px -4000px;
+          }
+        }
+      </style>
+  </head>
+  <body>
+    <header>
+        <h1>GPT Musical Oscillator</h1>
+        <p>Click anywhere to start. Move your mouse to play a wave:</p>
+    </header>
+    <canvas id="visualizer" width="800" height="500"></canvas>
+    <div id="buttons"></div>
+    <script>
+
+        const canvas = document.getElementById('visualizer');
+        const canvasContext = canvas.getContext('2d');
+        canvasContext.strokeStyle = 'green';
+        let started = false;
+        let audioContext, analyser, oscillator, gainNode, bufferLength, dataArray;
+        const width = 800, height = 500;
+
+        function Initialise(type){
+            audioContext = new AudioContext();
+            analyser = audioContext.createAnalyser();
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+            bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            //oscillator.connect(canvasContext.destination);
+
+            oscillator.type = type;
+            oscillator.frequency.value = 800;
+
+            gainNode.gain.value = 0;
+        }
+
+        document.addEventListener('click', () => {
+            if (!started){
+                Initialise("sine");
+
+                audioContext.resume().then(() => {
+                    oscillator.start();
+                    draw();
+                    started = true;
+                });
+            }
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+
+            const frequency = (mouseX / window.innerWidth) * 1000 + 100;
+            const volume = mouseY / window.innerHeight;
+            if (started) {
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            } 
+        });
+
+        document.addEventListener('mouseleave', () => {
+            if (started) {
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            }
+        });
+
+        const oscillatorFunctions = {
+            'sine': (oscillator, canvas, i, audioContext) => {
+                return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * Math.sin(2 * Math.PI * oscillator.frequency.value * i / audioContext.sampleRate);
+            },
+            'sawtooth': (oscillator, canvas, i, audioContext) => {
+                return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * (2 * ((i * audioContext.sampleRate / oscillator.frequency.value) % audioContext.sampleRate) / audioContext.sampleRate - 1);
+            },
+            'square': (oscillator, canvas, i, audioContext) => {
+                return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * (Math.sign(Math.sin(2 * Math.PI * oscillator.frequency.value * i / audioContext.sampleRate) - 0.5) + 1) / 2;
+            },
+            'triangle': (oscillator, canvas, i, audioContext) => {
+                return canvas.height / 2 + oscillator.frequency.value / 1000 * canvas.height / 2 * (1 - 4 * Math.abs(Math.round((oscillator.frequency.value * i / audioContext.sampleRate) - 0.25) - (oscillator.frequency.value * i / audioContext.sampleRate) + 0.25));
+            },
+            'default': (oscillator, canvas, i, audioContext) => {
+                return canvas.height / 2;
+            }
+        };
+
+        function draw() {
+            requestAnimationFrame(draw);
+            canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+            canvasContext.beginPath();
+            canvasContext.moveTo(0, canvas.height / 2);
+
+            for (let i = 0; i < canvas.width; i++) {
+                const x = i;
+                const oscillatorType = oscillator.type || 'default';
+                const oscillatorFunction = oscillatorFunctions[oscillatorType];
+                const y = oscillatorFunction(oscillator, canvas, i, audioContext);
+                canvasContext.lineTo(x, y);
+            }
+
+            canvasContext.stroke();
+      }
+
+
+        // create array of oscillator types
+        const oscillatorTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+
+        // create buttons for each oscillator type
+        const buttonContainer = document.querySelector('#buttons');
+        
+        oscillatorTypes.forEach((type, index) => {
+            const button = document.createElement('button');
+            button.textContent = type;
+            button.addEventListener('click', () => {
+                setOscillatorType(type);
+                updateButtonStyles(button);
+            });
+
+            // Add the "active" class to the first button
+            if (index === 0) {
+                button.classList.add("active");
+            }
+
+            buttonContainer.appendChild(button);
+        });
+
+        // function to set oscillator type
+        function setOscillatorType(type) {
+            oscillator.type=type;
+            console.log("Set oscilator type", oscillator.type)
+        }
+
+        // function to update button styles
+        function updateButtonStyles(selectedButton) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button === selectedButton) {
+                button.classList.add('active');
+                } else {
+                button.classList.remove('active');
+                }
+            });
+        }
+    </script>
+
+  </body>
+</html>
