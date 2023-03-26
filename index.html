@@ -30,8 +30,11 @@
         }
         #visualizer {
           display: block;
-          margin: auto;
+          margin: 15px auto;
+          border:1px solid green;
+          border-radius: 150px;
         }
+
         #buttons {
           display: flex;
           justify-content: center;
@@ -64,6 +67,50 @@
             background-position: 0px -4000px;
           }
         }
+
+        #piano-keys {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+          width: 800px;
+          margin: 15px auto;
+        }
+        #piano-keys .piano-key {
+          width: 40px;
+          height: 200px;
+          background-color: green;
+          border: 1px solid black;
+          margin: 5px;
+          border-radius: 5px;
+          box-shadow: 0 0 5px black;
+          text-align: center;
+          color: #000;
+        }
+        #piano-keys .piano-key:hover { background-color: darkgreen; }
+        #piano-keys .piano-key.black {
+          width: 20px;
+          height: 100px;
+          background-color: black;
+          margin: 5px;
+          border-radius: 5px;
+          border:1px solid black
+        }
+        #piano-keys .piano-key.black:nth-child(5n + 1) {
+          margin-left: 0;
+        }
+        #piano-keys .piano-key.black:nth-child(5n + 5) {
+          margin-right: 0;
+        }
+        #piano-keys .piano-key.black:nth-child(5n + 2),
+        #piano-keys .piano-key.black:nth-child(5n + 3) {
+          margin-left: -10px;
+        }
+        #piano-keys .piano-key.black:nth-child(5n + 4),
+        #piano-keys .piano-key.black:nth-child(5n + 5) {
+          margin-left: -20px;
+        }
+
       </style>
   </head>
   <body>
@@ -72,6 +119,7 @@
         <p>Click anywhere to start. Move your mouse to play a wave:</p>
     </header>
     <canvas id="visualizer" width="800" height="500"></canvas>
+    <div id="piano-keys"></div>
     <div id="buttons"></div>
     <footer>Source: <a href="https://github.com/rochal/oscillator">https://github.com/rochal/oscillator</a></footer>
     <script>
@@ -97,45 +145,21 @@
             oscillator.type = type;
             oscillator.frequency.value = 800;
 
-            gainNode.gain.value = 0;
-
+            gainNode.gain.value = 1;
+            gainNode.gain.setValueAtTime(1, audioContext.currentTime);
         }
 
-        document.addEventListener('click', () => {
+         document.getElementById('piano-keys').addEventListener('click', () => {
             if (!started){
                 Initialise("sine");
                 audioContext.resume().then(() => {
                     oscillator.start();
+                    oscillator.frequency.value = 100;
                     draw();
                     started = true;
                 });
             }
         });
-
-        document.addEventListener('mousemove', handleInput);
-        document.addEventListener('touchmove', handleInput);
-
-        function handleInput(event) {
-          event.preventDefault();
-
-          let mouseX, mouseY;
-
-          if (event.type === 'touchmove') {
-            mouseX = event.touches[0].clientX;
-            mouseY = event.touches[0].clientY;
-          } else {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-          }
-
-          const frequency = (mouseX / window.innerWidth) * 1000 + 100;
-          const amplitude = mouseY / window.innerHeight;
-
-          if (started) {
-            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(1 + amplitude, audioContext.currentTime);
-          }
-        }
 
         document.addEventListener('mouseleave', () => {
             if (started) {
@@ -187,8 +211,7 @@
 
             // draw stroke on the canvas
             canvasContext.stroke();
-      }
-
+        }
 
         // create array of oscillator types
         const oscillatorTypes = ['sine', 'square', 'sawtooth', 'triangle'];
@@ -239,6 +262,72 @@
                 button.classList.remove('active');
                 }
             });
+        }
+
+        // construct html for piano keys
+        const pianoKeys = document.querySelector('#piano-keys');
+        const pianoKeysArray = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const pianoKeysOctaves = [3,4];
+        const pianoKeysWhite = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const pianoKeysBlack = ['C#', 'D#', 'F#', 'G#', 'A#'];
+        const pianoKeysBlackOffset = [1, 3, 6, 8, 10];
+        const pianoKeysWhiteOffset = [0, 2, 4, 5, 7, 9, 11];
+
+        function createPianoKey(key, octave, offset, isBlack) {
+          const pianoKey = document.createElement('div');
+          pianoKey.classList.add('piano-key');
+          
+          if (isBlack) {
+            pianoKey.classList.add('black');
+          } else {
+            pianoKey.classList.add('white');
+          }
+
+          const frequency = getFrequency(key, octave);
+          pianoKey.setAttribute('data-frequency', frequency);
+          pianoKey.setAttribute('data-key', key);
+          pianoKey.setAttribute('data-octave', octave);
+          pianoKey.setAttribute('data-offset', offset);
+          pianoKey.setAttribute('data-is-black', isBlack);
+
+          // set innterHTML of piano key to the key name
+          pianoKey.innerHTML = key;
+
+          pianoKey.addEventListener('mousemove', e => {
+            const rect = pianoKey.getBoundingClientRect();
+            const height = rect.height;
+            const mouseY = e.clientY - rect.top;
+            const ratio = mouseY / height;
+            pianoKey.style.transform = `translateY(-${ratio * 20}px)`;
+            oscillator.frequency.value = pianoKey.dataset.frequency * ratio * -2;
+          });
+          
+          pianoKey.addEventListener('touchmove', e => {
+            const rect = pianoKey.getBoundingClientRect();
+            const height = rect.height;
+            const touchY = e.touches[0].clientY - rect.top;
+            const ratio = touchY / height;
+            pianoKey.style.transform = `translateY(-${ratio * 20}px)`;
+            oscillator.frequency.value = pianoKey.dataset.frequency * ratio * -2;
+          });
+          return pianoKey;
+        }
+
+        // loop through octaves
+        pianoKeysOctaves.forEach(octave => {
+          // loop through white keys
+          pianoKeysWhite.forEach((key, index) => {
+            const offset = pianoKeysWhiteOffset[index];
+            const isBlack = false;
+            const pianoKey = createPianoKey(key, octave, offset, isBlack);
+            pianoKeys.appendChild(pianoKey);
+          });
+        });
+
+        function getFrequency(key, octave) {
+          const keyOffset = pianoKeysArray.indexOf(key);
+          const noteNumber = (octave - 4) * 12 + keyOffset;
+          return 440 * Math.pow(2, noteNumber / 12);
         }
     </script>
 
