@@ -310,7 +310,7 @@
         // construct html for piano keys
         const pianoKeys = document.querySelector('#piano-keys');
         const pianoKeysArray = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-        const pianoKeysOctaves = [3,4];
+        const pianoKeysOctaves = [4];
         const pianoKeysWhite = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
         const pianoKeysBlack = ['C#', 'D#', 'F#', 'G#', 'A#'];
         const pianoKeysBlackOffset = [1, 3, 6, 8, 10];
@@ -341,7 +341,6 @@
             pianoKey.firstChild.style.height = `${ratio * 100}%`;
             oscillator.frequency.value = pianoKey.dataset.frequency * ratio * -2;
           });
-          
           pianoKey.addEventListener('touchmove', e => {
             const rect = pianoKey.getBoundingClientRect();
             const height = rect.height;
