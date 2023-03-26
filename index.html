@@ -4,12 +4,13 @@
     <title>Musical Oscillator</title>
     <style>
         body {
-          background-color: black;
+          background-color: green;
           font-family: monospace;
           font-size: 16px;
           color: green;
           margin: 0;
           padding: 2em;
+          color:#000;
         }
         canvas {
           background-color: black;
@@ -34,7 +35,6 @@
           border:1px solid green;
           border-radius: 150px;
         }
-
         #buttons {
           display: flex;
           justify-content: center;
@@ -45,7 +45,7 @@
           width: 40px;
           margin-right: 10px;
         }
-        header { width:800px; margin:0 auto; }
+        header { width:800px; margin:0 auto; text-align:center; }
         .matrix-background {
           position: fixed;
           top: 0;
@@ -57,8 +57,8 @@
           animation: matrix 20s linear infinite;
           z-index: -1;
         }
-        footer { text-align: center; padding-top:2em; }
-        footer, footer a, footer a:visited { color:green; }
+        footer { text-align: center; padding-top:2em; color:#000; }
+        footer, footer a, footer a:visited { color:#000; }
         @keyframes matrix {
           0% {
             background-position: 0px 0px;
@@ -67,7 +67,6 @@
             background-position: 0px -4000px;
           }
         }
-
         #piano-keys {
           display: flex;
           justify-content: center;
@@ -77,13 +76,12 @@
           margin: 15px auto;
         }
         #piano-keys .piano-key {
-          width: 40px;
+          width: 100px;
           height: 200px;
           background-color: green;
-          border: 1px solid black;
+          border: 2px solid black;
           margin: 5px;
           border-radius: 5px;
-          box-shadow: 0 0 5px black;
           text-align: center;
           color: #000;
         }
@@ -110,18 +108,20 @@
         #piano-keys .piano-key.black:nth-child(5n + 5) {
           margin-left: -20px;
         }
+        .in-key { width:100px; height:10px; background:#000; }
 
       </style>
   </head>
   <body>
     <header>
         <h1>Musical Oscillator</h1>
-        <p>Click anywhere to start. Move your mouse to play a wave:</p>
     </header>
     <canvas id="visualizer" width="800" height="500"></canvas>
-    <div id="piano-keys"></div>
     <div id="buttons"></div>
-    <footer>Source: <a href="https://github.com/rochal/oscillator">https://github.com/rochal/oscillator</a></footer>
+    <div id="piano-keys"></div>
+    <footer>
+        <p>Click to start ^</p>
+        Source: <a href="https://github.com/rochal/oscillator">https://github.com/rochal/oscillator</a></footer>
     <script>
 
         const canvas = document.getElementById('visualizer');
@@ -161,9 +161,27 @@
             }
         });
 
+        document.getElementById('visualizer').addEventListener('click', () => {
+            if (!started){
+                Initialise("sine");
+                audioContext.resume().then(() => {
+                    oscillator.start();
+                    oscillator.frequency.value = 100;
+                    draw();
+                    started = true;
+                });
+            }
+        });
+
         document.addEventListener('mouseleave', () => {
             if (started) {
                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            }
+        });
+        
+        document.addEventListener('mouseenter', () => {
+            if (started) {
+                gainNode.gain.setValueAtTime(1, audioContext.currentTime);
             }
         });
 
@@ -193,6 +211,31 @@
             }
         };
 
+        canvas.addEventListener('mousemove', handleInput);
+        canvas.addEventListener('touchmove', handleInput);
+
+        function handleInput(event) {
+          event.preventDefault();
+
+          let mouseX, mouseY;
+
+          if (event.type === 'touchmove') {
+            mouseX = event.touches[0].clientX;
+            mouseY = event.touches[0].clientY;
+          } else {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+          }
+
+          const frequency = (mouseX / window.innerWidth) * 1000 + 100;
+          const volume = mouseY / window.innerHeight;
+
+          if (started) {
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+          }
+        }
+        
         // draw oscilator wave
         function draw() {
             requestAnimationFrame(draw);
@@ -290,15 +333,12 @@
           pianoKey.setAttribute('data-offset', offset);
           pianoKey.setAttribute('data-is-black', isBlack);
 
-          // set innterHTML of piano key to the key name
-          pianoKey.innerHTML = key;
-
           pianoKey.addEventListener('mousemove', e => {
             const rect = pianoKey.getBoundingClientRect();
             const height = rect.height;
             const mouseY = e.clientY - rect.top;
             const ratio = mouseY / height;
-            pianoKey.style.transform = `translateY(-${ratio * 20}px)`;
+            pianoKey.firstChild.style.height = `${ratio * 100}%`;
             oscillator.frequency.value = pianoKey.dataset.frequency * ratio * -2;
           });
           
@@ -307,7 +347,7 @@
             const height = rect.height;
             const touchY = e.touches[0].clientY - rect.top;
             const ratio = touchY / height;
-            pianoKey.style.transform = `translateY(-${ratio * 20}px)`;
+            pianoKey.firstChild.style.height = `${ratio * 100}%`;
             oscillator.frequency.value = pianoKey.dataset.frequency * ratio * -2;
           });
           return pianoKey;
@@ -320,6 +360,9 @@
             const offset = pianoKeysWhiteOffset[index];
             const isBlack = false;
             const pianoKey = createPianoKey(key, octave, offset, isBlack);
+            const insideKey = document.createElement('div');
+            insideKey.classList.add('in-key');
+            pianoKey.appendChild(insideKey)
             pianoKeys.appendChild(pianoKey);
           });
         });
